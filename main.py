@@ -41,7 +41,7 @@ class Ant:
         elif self.dir == 'S': self.pos = x,   y+1
         elif self.dir == 'W': self.pos = x-1, y
 
-WIDTH, HEIGHT = 100, 100
+WIDTH, HEIGHT = 1000, 1000
 
 ant = Ant(WIDTH//2, HEIGHT//2) # star the ant in the center
 rules = 'LRRRRRLLR' # the ruleset fort the game
