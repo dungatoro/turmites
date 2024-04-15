@@ -44,8 +44,11 @@ class Ant:
 WIDTH, HEIGHT = 1000, 1000
 
 ant = Ant(WIDTH//2, HEIGHT//2) # star the ant in the center
-rules = 'LRRRRRLLR' # the ruleset fort the game
-colours = from_coolors("https://coolors.co/palette/001219-005f73-0a9396-94d2bd-e9d8a6-ee9b00-ca6702-bb3e03-ae2012-9b2226")
+rules = "RRLLLRLLLLLLLLL" # the ruleset fort the game
+colours = from_coolors("/1a1c2c-5d275d-b13e53-ef7d57-ffcd75-a7f070-38b764-257179-29366f-3b5dc9-41a6f6-73eff7-f4f4f4-94b0c2-566c86-333c57")
+
+if len(colours) < len(rules):
+    print("More rules than there are colours!")
 
 # init window
 window = Tk()
@@ -59,10 +62,13 @@ for x in range(WIDTH):
     for y in range(HEIGHT):
         img.put(colours[0], (x,y))
 
+count = 0
 try:
     while True:
+        count+= 1
         ant.move(img, rules, colours)
         window.update()
-except:
+except: 
     # when it goes off the screen stop
+    print("Stopped.")
     mainloop()
