@@ -1,9 +1,14 @@
 from tkinter import Tk, Canvas, PhotoImage, mainloop
-from random import randint
+import cmd
+import requests
 
-def from_coolors(link: str) -> list[str]:
+def from_coolors(link: str):
     # e.g. "https://coolors.co/8da1b9-95adb6-cbb3bf" -> ['#8da1b9', '#95adb6', '#cbb3bf'] 
     return list(map(lambda s: f"#{s}", link[link.rindex('/')+1::].split('-')))
+
+def from_lospec(palette):
+    response = requests.get(f"https://lospec.com/palette-list/{palette}.json")
+    return list(map(lambda s: f"#{s}".lower(), response.json()["colors"]))
 
 def rgb_to_hex(r, g, b):
     return '#%02x%02x%02x' % (r,g,b)
@@ -41,34 +46,102 @@ class Ant:
         elif self.dir == 'S': self.pos = x,   y+1
         elif self.dir == 'W': self.pos = x-1, y
 
-WIDTH, HEIGHT = 1000, 1000
+class App(cmd.Cmd):
+    rules = "RRLLLRLLLLLLLLL" # default ruleset
+    # default 16 colour palette
+    colours = ["#1a1c2c","#5d275d","#b13e53","#ef7d57","#ffcd75","#a7f070","#38b764",
+               "#257179","#29366f","#3b5dc9","#41a6f6","#73eff7","#f4f4f4","#94b0c2",
+               "#566c86","#333c57"] 
+    width, height = 500, 500
+    prompt = " >> "
 
-ant = Ant(WIDTH//2, HEIGHT//2) # star the ant in the center
-rules = "RRLLLRLLLLLLLLL" # the ruleset fort the game
-colours = from_coolors("/1a1c2c-5d275d-b13e53-ef7d57-ffcd75-a7f070-38b764-257179-29366f-3b5dc9-41a6f6-73eff7-f4f4f4-94b0c2-566c86-333c57")
+    def postcmd(self, stop, line):
+        if len(self.rules) > len(self.colours):
+            print("\033[93mWARNING: More rules than colours!\033[0m")
 
-if len(colours) < len(rules):
-    print("More rules than there are colours!")
+    def cmdloop(self, intro=None):
+        print(intro)
+        while True:
+            try:
+                super().cmdloop(intro="")
+                break
+            except KeyboardInterrupt:
+                print("^C")
+                exit(0)
 
-# init window
-window = Tk()
-canvas = Canvas(window, width=WIDTH, height=HEIGHT, bg=colours[0])
-canvas.pack()
-img = PhotoImage(width=WIDTH, height=HEIGHT)
-canvas.create_image((WIDTH/2, HEIGHT/2), image=img, state="normal")
+    def do_new(self, line):
+        """ Quickly initialise a new simulation e.g. `new RLLRLRRLL 500 500` """
+        try:
+            self.rules, width_str, height_str = line.split()
+        except:
+            print("Invalid number of arguements")
 
-# fill the canvas with the first colour
-for x in range(WIDTH):
-    for y in range(HEIGHT):
-        img.put(colours[0], (x,y))
+        try:
+            self.width, self.height = int(width_str), int(height_str)
+        except ValueError:
+            print("Width and height must be integers!")
 
-count = 0
-try:
-    while True:
-        count+= 1
-        ant.move(img, rules, colours)
-        window.update()
-except: 
-    # when it goes off the screen stop
-    print("Stopped.")
-    mainloop()
+    def do_set_rules(self, rules):
+        """ Define the rules for the simulation. e.g. RRLLLRLLLLLLLLL """
+        self.rules = rules
+
+    def do_set_width(self, width):
+        """ Set the width of the screen in pixels. """
+        try:
+            self.width = int(width)
+        except ValueError:
+            print("Width must be an integer!")
+
+    def do_set_height(self, width):
+        """ Set the height of the screen in pixels. """
+        try:
+            self.height = int(width)
+        except ValueError:
+            print("Height must be an integer!")
+    
+    def do_set_colours(self, colours):
+        """ Set the colours using a list of hex values. e.g. 8da1b9 95adb6 cbb3bf. """
+        self.colours = list(map(lambda s: f"#{s}", colours.split()))
+
+    def do_from_coolors(self, link):
+        """ Another way to set the colours. Generate a colour palette from a https://coolors.co link. """
+        self.colours = from_coolors(link)
+
+    def do_from_lospec(self, palette):
+        """ Yet another way to set the colours. Generate a colour palette from a palette name on lospec. """
+        self.colours = from_lospec(palette)
+
+    def do_play(self, _):
+        """ 
+        Start the simulation!
+        """
+        ant = Ant(self.width//2, self.height//2) # start the ant in the center
+        window = Tk()
+        canvas = Canvas(window, width=self.width, height=self.height, bg=self.colours[0])
+        canvas.pack()
+        img = PhotoImage(width=self.width, height=self.height)
+        canvas.create_image((self.width/2, self.height/2), image=img, state="normal")
+
+        # fill the canvas with the first colour
+        for x in range(self.width):
+            for y in range(self.height):
+                img.put(self.colours[0], (x,y))
+
+        count = 0
+        try:
+            while True:
+                count+= 1
+                ant.move(img, self.rules, self.colours)
+                window.update()
+        except: 
+            # when it goes off the screen stop
+            print("Ant has stopped.")
+            mainloop()
+
+intro = """
+ __     ,  Welcome to Turmites!
+(__).o.@c  Ask for `help` to see 
+ /  |  \   a list of commands.
+"""
+
+App().cmdloop(intro)
