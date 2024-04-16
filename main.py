@@ -57,7 +57,7 @@ class App(cmd.Cmd):
 
     def postcmd(self, stop, line):
         if len(self.rules) > len(self.colours):
-            print("\033[93mWARNING: More rules than colours!\033[0m")
+            print(f"\033[93mWARNING: More rules than colours!\033[0m There are currently {len(self.rules)} rules and {len(self.colours)} colours.")
 
     def cmdloop(self, intro=None):
         print(intro)
