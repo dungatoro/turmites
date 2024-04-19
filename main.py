@@ -1,6 +1,7 @@
 from tkinter import Tk, Canvas, PhotoImage, mainloop
 import cmd
 import requests
+from PIL import Image
 
 def from_coolors(link: str):
     # e.g. "https://coolors.co/8da1b9-95adb6-cbb3bf" -> ['#8da1b9', '#95adb6', '#cbb3bf'] 
@@ -12,6 +13,9 @@ def from_lospec(palette):
 
 def rgb_to_hex(r, g, b):
     return '#%02x%02x%02x' % (r,g,b)
+
+def hex_to_rgb(hex):
+    return tuple(int(hex[1::][i:i+2], 16) for i in (0, 2, 4))
 
 dirs = "NESW" # cardinal directions
 class Ant:
@@ -116,21 +120,19 @@ class App(cmd.Cmd):
         Start the simulation!
         """
         ant = Ant(self.width//2, self.height//2) # start the ant in the center
+
         window = Tk()
-        canvas = Canvas(window, width=self.width, height=self.height, bg=self.colours[0])
+        canvas = Canvas(window, width=self.width, height=self.height) # create the blank window
         canvas.pack()
-        img = PhotoImage(width=self.width, height=self.height)
-        canvas.create_image((self.width/2, self.height/2), image=img, state="normal")
 
-        # fill the canvas with the first colour
-        for x in range(self.width):
-            for y in range(self.height):
-                img.put(self.colours[0], (x,y))
+        i = Image.new('RGB', (self.width, self.height), hex_to_rgb(self.colours[0])) # generate a single colour image
+        i.save('t_u_r_m_i_t_e.png')
+        img = PhotoImage(file='t_u_r_m_i_t_e.png') # open the image as a `PhotoImage`, for pixel manipulation
 
-        count = 0
+        canvas.create_image((self.width/2, self.height/2), image=img)
+
         try:
             while True:
-                count+= 1
                 ant.move(img, self.rules, self.colours)
                 window.update()
         except: 
