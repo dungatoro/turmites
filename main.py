@@ -48,17 +48,19 @@ class Ant:
         elif self.dir == 'W': self.pos = x-1, y
 
 class App(cmd.Cmd):
-    rules = "RRLLLRLLLLLLLLL" # default ruleset
-    # default 16 colour palette
-    colours = ["#1a1c2c","#5d275d","#b13e53","#ef7d57","#ffcd75","#a7f070","#38b764",
-               "#257179","#29366f","#3b5dc9","#41a6f6","#73eff7","#f4f4f4","#94b0c2",
-               "#566c86","#333c57"] 
-    width, height = 500, 500
+    width, height = 1000, 1000
+    rules = "RL"
+    colours = ["#ffffff","#000000"]
+
+    with open('turmites.pickle', 'rb') as f:
+        turmites = pickle.load(f)
+
     prompt = " >> "
 
     def postcmd(self, stop, line):
-        if len(self.rules) > len(self.colours):
-            print(f"\033[93mWARNING: More rules than colours!\033[0m There are currently {len(self.rules)} rules and {len(self.colours)} colours.")
+
+        if len(self.rules) > len(self.colours): # warn about not enough colours
+            print(f"WARNING: More rules than colours! There are currently {len(self.rules)} rules and {len(self.colours)} colours.")
 
     def cmdloop(self, intro=None):
         print(intro)
@@ -129,13 +131,26 @@ class App(cmd.Cmd):
             print("Ant has stopped.")
             mainloop()
 
+    def do_list(self, _):
+        """ List the saved turmites. """
+        for name in self.turmites:
+            print(f' - "{name}"')
+
     def do_load(self, name):
         """ Load a previously saved turmite. This overwrites colours and rules. """
-        pass
+        try:
+            turmite = self.turmites[name]
+        except:
+            print('No such turmite exists.')
+        else:
+            self.colours = turmite['colours']
+            self.rules = turmite['rules'] 
 
     def do_save(self, name):
-        """ """
-        pass
+        """ Save the current colours and rules as a turmite to be loaded later! Please provide a name. """
+        self.turmites[name] = {'colours': self.colours, 'rules': self.rules}
+        with open('turmites.pickle', 'wb') as f:
+            pickle.dump(self.turmites, f)
 
 intro = """
  __     ,  Welcome to Turmites!
