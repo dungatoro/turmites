@@ -2,10 +2,7 @@ from tkinter import Tk, Canvas, PhotoImage, mainloop
 import cmd
 import requests
 from PIL import Image
-
-def from_coolors(link: str):
-    # e.g. "https://coolors.co/8da1b9-95adb6-cbb3bf" -> ['#8da1b9', '#95adb6', '#cbb3bf'] 
-    return list(map(lambda s: f"#{s}", link[link.rindex('/')+1::].split('-')))
+import pickle
 
 def from_lospec(palette):
     response = requests.get(f"https://lospec.com/palette-list/{palette}.json")
@@ -74,11 +71,11 @@ class App(cmd.Cmd):
                 exit(0)
 
     def do_new(self, line):
-        """ Quickly initialise a new simulation e.g. `new RLLRLRRLL 500 500` """
+        """ Quickly initialise a new simulation e.g. `new RLLRLRRLL 500 500`. """
         try:
             self.rules, width_str, height_str = line.split()
         except:
-            print("Invalid number of arguements")
+            print("Invalid number of arguments.")
 
         try:
             self.width, self.height = int(width_str), int(height_str)
@@ -86,39 +83,31 @@ class App(cmd.Cmd):
             print("Width and height must be integers!")
 
     def do_set_rules(self, rules):
-        """ Define the rules for the simulation. e.g. RRLLLRLLLLLLLLL """
+        """ Define the rules for the simulation. e.g. RRLLLRLLLLLLLLL. """
         self.rules = rules
 
-    def do_set_width(self, width):
-        """ Set the width of the screen in pixels. """
+    def do_set_size(self, line):
+        """ Set the WIDTHxHEIGHT of the screen. """
         try:
-            self.width = int(width)
-        except ValueError:
-            print("Width must be an integer!")
+            width_str, height_str = line.split('x')
+        except:
+            print("Invalid number of arguments.")
 
-    def do_set_height(self, width):
-        """ Set the height of the screen in pixels. """
         try:
-            self.height = int(width)
+            self.width, self.height = int(width_str), int(height_str)
         except ValueError:
-            print("Height must be an integer!")
+            print("Width and height must be integers!")
     
     def do_set_colours(self, colours):
         """ Set the colours using a list of hex values. e.g. 8da1b9 95adb6 cbb3bf. """
         self.colours = list(map(lambda s: f"#{s}", colours.split()))
 
-    def do_from_coolors(self, link):
-        """ Another way to set the colours. Generate a colour palette from a https://coolors.co link. """
-        self.colours = from_coolors(link)
-
     def do_from_lospec(self, palette):
-        """ Yet another way to set the colours. Generate a colour palette from a palette name on lospec. """
+        """ Generate a colour palette from a palette name on lospec. """
         self.colours = from_lospec(palette)
-
+    
     def do_play(self, _):
-        """ 
-        Start the simulation!
-        """
+        """ Start the simulation! """
         ant = Ant(self.width//2, self.height//2) # start the ant in the center
 
         window = Tk()
@@ -126,7 +115,7 @@ class App(cmd.Cmd):
         canvas.pack()
 
         i = Image.new('RGB', (self.width, self.height), hex_to_rgb(self.colours[0])) # generate a single colour image
-        i.save('t_u_r_m_i_t_e.png')
+        i.save('t_u_r_m_i_t_e.png') # weird, hopefully non-conflicting, filename
         img = PhotoImage(file='t_u_r_m_i_t_e.png') # open the image as a `PhotoImage`, for pixel manipulation
 
         canvas.create_image((self.width/2, self.height/2), image=img)
@@ -139,6 +128,14 @@ class App(cmd.Cmd):
             # when it goes off the screen stop
             print("Ant has stopped.")
             mainloop()
+
+    def do_load(self, name):
+        """ Load a previously saved turmite. This overwrites colours and rules. """
+        pass
+
+    def do_save(self, name):
+        """ """
+        pass
 
 intro = """
  __     ,  Welcome to Turmites!
