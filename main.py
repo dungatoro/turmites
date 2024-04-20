@@ -1,18 +1,17 @@
-from tkinter import Tk, Canvas, PhotoImage, mainloop
 import cmd
 import requests
-from PIL import Image
 import pickle
+import pygame
 
 def from_lospec(palette):
     response = requests.get(f"https://lospec.com/palette-list/{palette}.json")
     return list(map(lambda s: f"#{s}".lower(), response.json()["colors"]))
 
-def rgb_to_hex(r, g, b):
+def rgb_to_hex(r, g, b,a):
     return '#%02x%02x%02x' % (r,g,b)
 
 def hex_to_rgb(hex):
-    return tuple(int(hex[1::][i:i+2], 16) for i in (0, 2, 4))
+    return tuple(int(hex[1::][i:i+2], 16) for i in (0, 2, 4))+(255,)
 
 dirs = "NESW" # cardinal directions
 class Ant:
@@ -26,9 +25,9 @@ class Ant:
     def turn_right(self): 
         self.dir = dirs[(dirs.index(self.dir)+1)%4] # rotate the ant right
 
-    def move(self, img, rules, colours):
-        colour = rgb_to_hex(*img.get(*self.pos)) # get the colour at the canvas
-        colour_idx = colours.index(colour) # find that colour in the paletter
+    def move(self, surface, rules, colours):
+        colour = surface.get_at(self.pos) # get the colour at the canvas
+        colour_idx = colours.index(colour) # find that colour in the palette
 
         # rotate the ant
         if rules[colour_idx] == 'R':
@@ -38,7 +37,7 @@ class Ant:
 
         # cycle the colour
         colour = colours[(colour_idx+1)%len(rules)] # colour palette wraps around
-        img.put(colour, self.pos)
+        surface.set_at(self.pos, colour)
 
         # move the ant forward
         x, y = self.pos
@@ -51,6 +50,7 @@ class App(cmd.Cmd):
     width, height = 1000, 1000
     rules = "RL"
     colours = ["#ffffff","#000000"]
+    steps = 1000
 
     with open('turmites.pickle', 'rb') as f:
         turmites = pickle.load(f)
@@ -86,7 +86,11 @@ class App(cmd.Cmd):
 
     def do_set_rules(self, rules):
         """ Define the rules for the simulation. e.g. RRLLLRLLLLLLLLL. """
-        self.rules = rules
+        rules = rules.upper()
+        if set(rules) <= {'R', 'L'}:
+            self.rules = rules.upper()
+        else:
+            print("Rules must only contains 'R's and 'L's")
 
     def do_set_size(self, line):
         """ Set the WIDTHxHEIGHT of the screen. """
@@ -104,6 +108,13 @@ class App(cmd.Cmd):
         """ Set the colours using a list of hex values. e.g. 8da1b9 95adb6 cbb3bf. """
         self.colours = list(map(lambda s: f"#{s}", colours.split()))
 
+    def do_set_steps(self, steps):
+        """ Set the number of steps at each frame (more steps => faster). """
+        try:
+            self.steps = int(steps)
+        except:
+            print("Must be an integer number of steps!")
+
     def do_from_lospec(self, palette):
         """ Generate a colour palette from a palette name on lospec. """
         self.colours = from_lospec(palette)
@@ -112,24 +123,40 @@ class App(cmd.Cmd):
         """ Start the simulation! """
         ant = Ant(self.width//2, self.height//2) # start the ant in the center
 
-        window = Tk()
-        canvas = Canvas(window, width=self.width, height=self.height) # create the blank window
-        canvas.pack()
+        colours = list(map(hex_to_rgb, self.colours))
 
-        i = Image.new('RGB', (self.width, self.height), hex_to_rgb(self.colours[0])) # generate a single colour image
-        i.save('t_u_r_m_i_t_e.png') # weird, hopefully non-conflicting, filename
-        img = PhotoImage(file='t_u_r_m_i_t_e.png') # open the image as a `PhotoImage`, for pixel manipulation
+        pygame.init()
 
-        canvas.create_image((self.width/2, self.height/2), image=img)
+        screen = pygame.display.set_mode((self.width, self.height))
+        surface = pygame.Surface((self.width, self.height))
+        surface.fill(colours[0])
+
+        screen = pygame.display.get_surface()
+        screen.blit(surface, (0,0))
+        pygame.display.flip()
 
         try:
             while True:
-                ant.move(img, self.rules, self.colours)
-                window.update()
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        raise SystemExit
+
+                for i in range(self.steps):
+                    ant.move(surface, self.rules, colours)
+                screen.blit(surface, (0,0))
+                pygame.display.flip()
         except: 
             # when it goes off the screen stop
             print("Ant has stopped.")
-            mainloop()
+            screen.blit(surface, (0,0))
+            pygame.display.flip()
+
+        hold_window = True
+        while hold_window:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    hold_window = False
 
     def do_list(self, _):
         """ List the saved turmites. """
