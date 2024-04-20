@@ -1,11 +1,20 @@
+# turn off 'Hello from the pygame community...' at start of script
+from os import environ
+environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame
+
 import cmd
 import requests
 import pickle
-import pygame
 
 def from_lospec(palette):
-    response = requests.get(f"https://lospec.com/palette-list/{palette}.json")
-    return list(map(lambda s: f"#{s}".lower(), response.json()["colors"]))
+    # get a palette from https://lospec.com/palette-list using their API
+    try:
+        response = requests.get(f"https://lospec.com/palette-list/{palette}.json")
+    except:
+        raise Exception
+    else:
+        return list(map(lambda s: f"#{s}".lower(), response.json()["colors"]))
 
 def rgb_to_hex(r, g, b,a):
     return '#%02x%02x%02x' % (r,g,b)
@@ -37,9 +46,9 @@ class Ant:
 
         # cycle the colour
         colour = colours[(colour_idx+1)%len(rules)] # colour palette wraps around
-        surface.set_at(self.pos, colour)
+        surface.set_at(self.pos, colour) # write to the pixel
 
-        # move the ant forward
+        # move the ant forward based on direction facing
         x, y = self.pos
         if   self.dir == 'N': self.pos = x,   y-1
         elif self.dir == 'E': self.pos = x+1, y
@@ -48,19 +57,18 @@ class Ant:
 
 class App(cmd.Cmd):
     width, height = 1000, 1000
-    rules = "RL"
+    rules = "RL" # default langton's ant behaviour
     colours = ["#ffffff","#000000"]
-    steps = 1000
+    steps = 1000 # number of steps in the simulation at each frame
 
-    with open('turmites.pickle', 'rb') as f:
+    with open('turmites.pickle', 'rb') as f: # load any saved turmites
         turmites = pickle.load(f)
 
     prompt = " >> "
 
     def postcmd(self, stop, line):
-
         if len(self.rules) > len(self.colours): # warn about not enough colours
-            print(f"WARNING: More rules than colours! There are currently {len(self.rules)} rules and {len(self.colours)} colours.")
+            print(f"WARNING: More rules than colours! There are currently {len(self.rules)} rules and only {len(self.colours)} colours.")
 
     def cmdloop(self, intro=None):
         print(intro)
@@ -68,12 +76,60 @@ class App(cmd.Cmd):
             try:
                 super().cmdloop(intro="")
                 break
-            except KeyboardInterrupt:
+            except KeyboardInterrupt: # handle CTRL+c to end the program
                 print("^C")
                 exit(0)
 
+    def do_play(self, _):
+        """ Start the simulation! 
+    `play`"""
+        ant = Ant(self.width//2, self.height//2) # start the ant in the center
+
+        colours = list(map(hex_to_rgb, self.colours)) # parse the colours to rgb form
+
+        pygame.init()
+
+        screen = pygame.display.set_mode((self.width, self.height))
+        surface = pygame.Surface((self.width, self.height))
+        surface.fill(colours[0]) # set the background to the first colour
+
+        screen = pygame.display.get_surface()
+        screen.blit(surface, (0,0))
+        pygame.display.flip()
+
+        try:
+            while True:
+                # need to listen for events otherwise OS will think the program has crashed
+                for event in pygame.event.get():
+                    if event.type == pygame.QUIT:
+                        raise SystemExit
+
+                # take `self.steps` steps in the simulation
+                for i in range(self.steps):
+                    ant.move(surface, self.rules, colours)
+
+                screen.blit(surface, (0,0))
+                pygame.display.flip()
+       
+        except:  # it will error when the ant tries to move outside the screen bounds
+            # when it goes off the screen stop
+            print("Ant has stopped.")
+            # draw the screen as it wouldn't have drawn the last however many steps
+            screen.blit(surface, (0,0))
+            pygame.display.flip()
+
+        # keep the window open until the user closes it or presses CTRL+c
+        hold_window = True
+        while hold_window:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    hold_window = False
+
+
     def do_new(self, line):
-        """ Quickly initialise a new simulation e.g. `new RLLRLRRLL 500 500`. """
+        """Quickly initialise a new simulation. 
+    `new RLLRLRRLL 500 500`"""
         try:
             self.rules, width_str, height_str = line.split()
         except:
@@ -85,7 +141,8 @@ class App(cmd.Cmd):
             print("Width and height must be integers!")
 
     def do_set_rules(self, rules):
-        """ Define the rules for the simulation. e.g. RRLLLRLLLLLLLLL. """
+        """Define the rules for the simulation. 
+    `set_rules RRLLLRLLLLLLLLL`"""
         rules = rules.upper()
         if set(rules) <= {'R', 'L'}:
             self.rules = rules.upper()
@@ -93,78 +150,50 @@ class App(cmd.Cmd):
             print("Rules must only contains 'R's and 'L's")
 
     def do_set_size(self, line):
-        """ Set the WIDTHxHEIGHT of the screen. """
+        """Set the WIDTHxHEIGHT of the screen. 
+    `set_size 400x600`"""
         try:
             width_str, height_str = line.split('x')
         except:
             print("Invalid number of arguments.")
-
-        try:
-            self.width, self.height = int(width_str), int(height_str)
-        except ValueError:
-            print("Width and height must be integers!")
+        else:
+            try:
+                self.width, self.height = int(width_str), int(height_str)
+            except ValueError:
+                print("Width and height must be integers!")
     
     def do_set_colours(self, colours):
-        """ Set the colours using a list of hex values. e.g. 8da1b9 95adb6 cbb3bf. """
+        """Set the colours using a list of hex values.
+    `set_colours 8da1b9 95adb6 cbb3bf`"""
         self.colours = list(map(lambda s: f"#{s}", colours.split()))
 
     def do_set_steps(self, steps):
-        """ Set the number of steps at each frame (more steps => faster). """
+        """Set the number of steps at each frame (more steps => faster). Using too many steps 
+will make the simulation look choppy.
+    `set_steps 1000`"""
         try:
             self.steps = int(steps)
         except:
             print("Must be an integer number of steps!")
 
     def do_from_lospec(self, palette):
-        """ Generate a colour palette from a palette name on lospec. """
-        self.colours = from_lospec(palette)
-    
-    def do_play(self, _):
-        """ Start the simulation! """
-        ant = Ant(self.width//2, self.height//2) # start the ant in the center
-
-        colours = list(map(hex_to_rgb, self.colours))
-
-        pygame.init()
-
-        screen = pygame.display.set_mode((self.width, self.height))
-        surface = pygame.Surface((self.width, self.height))
-        surface.fill(colours[0])
-
-        screen = pygame.display.get_surface()
-        screen.blit(surface, (0,0))
-        pygame.display.flip()
-
+        """Generate a colour palette from https://lospec.com/palette-list. Provide the 
+palette name with '-' in place of spaces. 
+    `from_lospec pico-8`"""
         try:
-            while True:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        raise SystemExit
-
-                for i in range(self.steps):
-                    ant.move(surface, self.rules, colours)
-                screen.blit(surface, (0,0))
-                pygame.display.flip()
-        except: 
-            # when it goes off the screen stop
-            print("Ant has stopped.")
-            screen.blit(surface, (0,0))
-            pygame.display.flip()
-
-        hold_window = True
-        while hold_window:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    pygame.quit()
-                    hold_window = False
-
+            self.colours = from_lospec(palette)
+        except:
+            print("Colour palette does not exist.")
+    
     def do_list(self, _):
-        """ List the saved turmites. """
+        """ List the saved turmites. 
+    `list`"""
         for name in self.turmites:
             print(f' - "{name}"')
 
     def do_load(self, name):
-        """ Load a previously saved turmite. This overwrites colours and rules. """
+        """ Load a previously saved turmite. This overwrites colours and rules. 
+    `load scary fractal`"""
         try:
             turmite = self.turmites[name]
         except:
@@ -174,10 +203,23 @@ class App(cmd.Cmd):
             self.rules = turmite['rules'] 
 
     def do_save(self, name):
-        """ Save the current colours and rules as a turmite to be loaded later! Please provide a name. """
+        """ Save the current colours and rules as a turmite to be loaded later! Please provide a name. 
+    `save Streety's turmite`"""
         self.turmites[name] = {'colours': self.colours, 'rules': self.rules}
         with open('turmites.pickle', 'wb') as f:
             pickle.dump(self.turmites, f)
+
+    def do_del(self, name):
+        """ Delete an existing turmite by name.
+    `del Williams' turmite`"""
+        try:
+            del self.turmites[name]
+        except:
+            print("Turmite does not exist.")
+        else: 
+            with open('turmites.pickle', 'wb') as f:
+                pickle.dump(self.turmites, f)
+
 
 intro = """
  __     ,  Welcome to Turmites!
