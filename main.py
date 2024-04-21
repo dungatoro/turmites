@@ -61,8 +61,11 @@ class App(cmd.Cmd):
     colours = ["#ffffff","#000000"]
     steps = 1000 # number of steps in the simulation at each frame
 
-    with open('turmites.pickle', 'rb') as f: # load any saved turmites
-        turmites = pickle.load(f)
+    try:
+        with open('turmites.pickle', 'rb') as f: # load any saved turmites
+            turmites = pickle.load(f)
+    except FileNotFoundError:
+        turmites = {}
 
     prompt = " >> "
 
