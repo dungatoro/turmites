@@ -26,24 +26,24 @@ Set colours used in simulation using hex values.
 
 `set_steps [steps]`
 
-Set number of steps simulated on each window refresh
+Set number of steps simulated on each window refresh.
 
 `from_lospec [palette]`
 
-Set colours from a lospec palette using hyphens in place of spaces
+Set colours from a lospec palette using hyphens in place of spaces.
 
 `list`
 
-List saved turmite simulations
+List saved turmite simulations.
 
 `load [name]`
 
-Load previous turmite simulation
+Load previous turmite simulation.
 
 `save [name]`
 
-Save current turmite simulation
+Save current turmite simulation.
 
 `del [name]`
 
-Delete saved turmite simulation
+Delete saved turmite simulation.
