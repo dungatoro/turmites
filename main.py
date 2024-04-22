@@ -210,6 +210,8 @@ palette name with '-' in place of spaces.
                 self.simScale = turmite['scale']
             except:
                 self.simScale = 1
+                self.sim_height = self.height
+                self.sim_width = self.width
 
     def do_save(self, name):
         """ Save the current colours and rules as a turmite to be loaded later! Please provide a name. 
