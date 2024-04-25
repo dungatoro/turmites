@@ -60,8 +60,8 @@ class App(cmd.Cmd):
     rules = "RL" # default langton's ant behaviour
     colours = ["#ffffff","#000000"]
     steps = 1000 # number of steps in the simulation at each frame
-    simScale = 1 # scale the simulation by this factor
-    sim_width, sim_height = width//simScale, height//simScale
+    sim_scale = 1 # scale the simulation by this factor
+    sim_width, sim_height = width//sim_scale, height//sim_scale
 
     try:
         with open('turmites.pickle', 'rb') as f: # load any saved turmites
@@ -99,7 +99,7 @@ class App(cmd.Cmd):
         surface.fill(colours[0]) # set the background to the first colour
 
         screen = pygame.display.get_surface()
-        screen.blit(pygame.transform.scale_by(surface, self.simScale), (0,0))
+        screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
         pygame.display.flip()
 
         try:
@@ -113,14 +113,14 @@ class App(cmd.Cmd):
                 for i in range(self.steps):
                     ant.move(surface, self.rules, colours)
 
-                screen.blit(pygame.transform.scale_by(surface, self.simScale), (0,0))
+                screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
                 pygame.display.flip()
 
         except:  # it will error when the ant tries to move outside the screen bounds
             # when it goes off the screen stop
             print("Ant has stopped.")
             # draw the screen as it wouldn't have drawn the last however many steps
-            screen.blit(pygame.transform.scale_by(surface, self.simScale), (0,0))
+            screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
             pygame.display.flip()
 
         # keep the window open until the user closes it or presses CTRL+c
@@ -206,17 +206,11 @@ palette name with '-' in place of spaces.
         else:
             self.colours = turmite['colours']
             self.rules = turmite['rules'] 
-            try:
-                self.simScale = turmite['scale']
-            except:
-                self.simScale = 1
-                self.sim_height = self.height
-                self.sim_width = self.width
 
     def do_save(self, name):
         """ Save the current colours and rules as a turmite to be loaded later! Please provide a name. 
     `save Streety's turmite`"""
-        self.turmites[name] = {'colours': self.colours, 'rules': self.rules, 'scale': self.simScale}
+        self.turmites[name] = {'colours': self.colours, 'rules': self.rules}
         with open('turmites.pickle', 'wb') as f:
             pickle.dump(self.turmites, f)
 
@@ -234,11 +228,11 @@ palette name with '-' in place of spaces.
         """ Set the scale of the simulation.
     `set_scale 4`"""
         try:
-            self.simScale = float(scale)
+            self.sim_scale = float(scale)
         except:
             print("Scale must be an float.")
         else:
-            self.sim_height, self.sim_width = self.height//self.simScale, self.width//self.simScale
+            self.sim_height, self.sim_width = self.height//self.sim_scale, self.width//self.sim_scale
 
 
 intro = """
