@@ -139,11 +139,11 @@ class App(cmd.Cmd):
             self.rules, width_str, height_str = line.split()
         except:
             print("Invalid number of arguments.")
-
-        try:
-            self.width, self.height = int(width_str), int(height_str)
-        except ValueError:
-            print("Width and height must be integers!")
+        else:
+            try:
+                self.width, self.height = int(width_str), int(height_str)
+            except ValueError:
+                print("Width and height must be integers!")
 
     def do_set_rules(self, rules):
         """Define the rules for the simulation. 
@@ -164,6 +164,7 @@ class App(cmd.Cmd):
         else:
             try:
                 self.width, self.height = int(width_str), int(height_str)
+                self.sim_height, self.sim_width = self.height//self.sim_scale, self.width//self.sim_scale
             except ValueError:
                 print("Width and height must be integers!")
 
