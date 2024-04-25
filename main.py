@@ -88,17 +88,18 @@ class App(cmd.Cmd):
     def do_play(self, _):
         """ Start the simulation! 
     `play`"""
-        ant = Ant(int(self.sim_width//2), int(self.sim_height//2)) # start the ant in the center
+        ant = Ant(self.width//2, self.height//2) # start the ant in the center
 
         colours = list(map(hex_to_rgb, self.colours)) # parse the colours to rgb form
 
         pygame.init()
 
         screen = pygame.display.set_mode((self.width, self.height))
-        surface = pygame.Surface((self.sim_width, self.sim_height))
+        surface = pygame.Surface((self.width, self.height))
         surface.fill(colours[0]) # set the background to the first colour
 
         screen = pygame.display.get_surface()
+
         screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
         pygame.display.flip()
 
@@ -114,13 +115,16 @@ class App(cmd.Cmd):
                     ant.move(surface, self.rules, colours)
 
                 screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
-                pygame.display.flip()
 
+                pygame.display.flip()
+       
         except:  # it will error when the ant tries to move outside the screen bounds
             # when it goes off the screen stop
             print("Ant has stopped.")
             # draw the screen as it wouldn't have drawn the last however many steps
+
             screen.blit(pygame.transform.scale_by(surface, self.sim_scale), (0,0))
+
             pygame.display.flip()
 
         # keep the window open until the user closes it or presses CTRL+c
@@ -224,6 +228,7 @@ palette name with '-' in place of spaces.
         else: 
             with open('turmites.pickle', 'wb') as f:
                 pickle.dump(self.turmites, f)
+
     def do_set_scale(self, scale):
         """ Set the scale of the simulation.
     `set_scale 4`"""
@@ -233,6 +238,7 @@ palette name with '-' in place of spaces.
             print("Scale must be an float.")
         else:
             self.sim_height, self.sim_width = self.height//self.sim_scale, self.width//self.sim_scale
+
 
 
 intro = """
