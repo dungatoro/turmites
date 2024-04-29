@@ -131,6 +131,26 @@ class App(cmd.Cmd):
                     pygame.quit()
                     hold_window = False
 
+    def do_image(self, title):
+        """ Runs the simulation quickly and saves to a PNG. 
+    `image my_ant`"""
+        ant = Ant(int(self.sim_width//2), int(self.sim_height//2)) # start the ant in the center
+
+        colours = list(map(hex_to_rgb, self.colours)) # parse the colours to rgb form
+
+        surface = pygame.Surface((self.sim_width, self.sim_height))
+        surface.fill(colours[0]) # set the background to the first colour
+
+        try:
+            while True:
+                ant.move(surface, self.rules, colours)
+
+        except:  # it will error when the ant tries to move outside the screen bounds
+            # when it goes off the screen stop
+            print("Ant has stopped.")
+
+        pygame.image.save(surface, f"{title}.png")
+
 
     def do_new(self, line):
         """Quickly initialise a new simulation. 
